@@ -1,0 +1,6 @@
+Richard E. Knouse
+
+jwt-go is version 2 of github.com/djrijalva/jwt-go
+
+go-sql-driver/mysql is a customization of version 1.2 of github.com/go-sql-driver/mysql that was modified
+to handle stored procedures.
