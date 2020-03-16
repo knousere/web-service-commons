@@ -233,9 +233,8 @@ func FancyPhone(strPhone string) string {
 
 	if s == "" {
 		return s
-	} else {
-		return fmt.Sprintf("(%s)%s-%s", s[:3], s[3:6], s[6:])
 	}
+	return fmt.Sprintf("(%s)%s-%s", s[:3], s[3:6], s[6:])
 }
 
 // ShortURL returns url with http://www. or http: stripped off
@@ -254,7 +253,7 @@ func ShortURL(strURL string) string {
 	return s
 }
 
-// PaypalURL parses a paypal url and make corrections
+// PaypalURL parses a paypal url and makes corrections
 func PaypalURL(strRaw string) (string, bool) {
 	strRaw = strings.TrimSpace(strRaw)
 	if strRaw == "" {
@@ -344,7 +343,7 @@ func CleanPassword(strPassword string) string {
 	return strCleanUsername
 }
 
-// ParseAPIVersion returns api version if found, else 0
+// ParseAPIVersion returns api version if found as prefix to url path, else 0
 func ParseAPIVersion(strURLPath string) int {
 	var intAPIVersion int
 
@@ -375,12 +374,10 @@ func ParseAPIVersionString(strURLPath string) string {
 
 // ParseDraft returns 1 if string contains "/draft/", else 0
 func ParseDraft(strURLPath string) int {
-	bDraft := strings.Contains(strURLPath, "/draft/")
-	if bDraft {
+	if strings.Contains(strURLPath, "/draft/") {
 		return 1
-	} else {
-		return 0
 	}
+	return 0
 }
 
 // ParseAppString parses off the app identifying string from the user agent

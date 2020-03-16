@@ -1,13 +1,20 @@
 package database
 
-// Many of these wrapper functions are designed to call mysql stored procedures that return
-// result codes rather than raw errors. A stored procedure cannot be called using the exec function.
-// All stored procedures must return either a dataset or a result code. The clientMultiResults
-// flag is turned on internally. However, multiple return sets are not supported and will be
-// silently discarded if found.
+// This set of wrapper functions is explictly designed to use a version of go-sql-driver that
+// has been modified to support stored procedures in mysql. Many of these functions are designed
+// to call mysql stored procedures that return result codes rather than raw errors. This has the
+// effect of relieving the caller of trivial error handling.
+
+// A stored procedure cannot be called using the exec function. All stored procedures must return
+// either a dataset or a result code. The clientMultiResults flag is turned on internally.
+// However, multiple return sets are not supported and will be silently discarded if found.
+
+// This pachage also has embedded trace diagnostic functionality that includes a dump of the query
+// text and arguments to the log.
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,10 +25,18 @@ import (
 // WARNING: do no use this for a stored procedure.
 func (dbConn *DBConnection) Exec(query string, args ...interface{}) (sql.Result, error) {
 	strArgs := doTrace(query, args...)
+
+	if strings.HasPrefix(strings.ToUpper(query), "CALL ") {
+		err := errors.New("cannot use Exec for a stored procedure call")
+		utils.Warning.Println(err.Error(), refreshTrace(strArgs, query, args...))
+		return nil, err
+	}
+
 	result, err := dbConn.db.Exec(query, args...)
 	if err != nil {
 		utils.Warning.Println(err.Error(), refreshTrace(strArgs, query, args...))
 	}
+
 	if utils.GetTrace() == 1 {
 		lastInsertID, _ := result.LastInsertId()
 		affectedRows, _ := result.RowsAffected()
@@ -30,7 +45,7 @@ func (dbConn *DBConnection) Exec(query string, args ...interface{}) (sql.Result,
 	return result, err
 }
 
-// argString converts a arg list into a string.
+// argString converts an arg list into a string.
 func argString(query string, args ...interface{}) string {
 
 	argArray := make([]string, 0, 20)
@@ -111,7 +126,7 @@ func (dbConn *DBConnection) GetPositiveInt(query string, args ...interface{}) (i
 	return intValue, err
 }
 
-// GetPositiveIntDefault  gets one row that consists of only a positive integer.
+// GetPositiveIntDefault gets one row that consists of only a positive integer.
 // It returns default value rather than ErrNoRows.
 func (dbConn *DBConnection) GetPositiveIntDefault(intDefault int, query string, args ...interface{}) (int, error) {
 	strArgs := doTrace(query, args...)
@@ -161,7 +176,7 @@ func (dbConn *DBConnection) GetRecordCount(query string, args ...interface{}) (i
 	return intCount, err
 }
 
-// GetOneString get one row that consists of only a string value.
+// GetOneString returns one row that consists of only a string value.
 // This is usually an external key.
 func (dbConn *DBConnection) GetOneString(query string, args ...interface{}) (string, error) {
 	strArgs := doTrace(query, args...)
@@ -176,7 +191,7 @@ func (dbConn *DBConnection) GetOneString(query string, args ...interface{}) (str
 }
 
 // InsertRow inserts a row and returns the id of the new record.
-// An ID should always be returned so all errors including "no rows" are an
+// An ID should always be returned so all errors including ErrNoRows are an
 // indication of a server problem.
 func (dbConn *DBConnection) InsertRow(query string, args ...interface{}) (int, error) {
 	strArgs := doTrace(query, args...)
@@ -193,7 +208,7 @@ func (dbConn *DBConnection) InsertRow(query string, args ...interface{}) (int, e
 
 // InsertRowResult inserts a row and returns the result code and the id of the new record.
 // Result -2 typically indicates a permissions error.
-// An ID should always be returned so all errors including "no rows" indicate a server problem.
+// An ID should always be returned so all errors including ErrNoRows indicate a server problem.
 func (dbConn *DBConnection) InsertRowResult(query string, args ...interface{}) (int, int, error) {
 	strArgs := doTrace(query, args...)
 	var result, id int
@@ -208,7 +223,7 @@ func (dbConn *DBConnection) InsertRowResult(query string, args ...interface{}) (
 }
 
 // UpdateRows updates row(s) and returns affected count.
-// An affected count should always be returned so all errors including "no rows" indicate
+// An affected count should always be returned so all errors including ErrNoRows indicate
 // a server problem.
 func (dbConn *DBConnection) UpdateRows(query string, args ...interface{}) (int, error) {
 	strArgs := doTrace(query, args...)
@@ -237,7 +252,7 @@ func (dbConn *DBConnection) UpdateRowsWithDeadlock(query string, args ...interfa
 }
 
 // UpdateRowsResult updates row(s) and returns result code and affected count if there was no error in SP.
-// A result code should always be returned so all errors including "no rows" indicate
+// A result code should always be returned so all errors including ErrNoRows indicate
 // a server problem.
 func (dbConn *DBConnection) UpdateRowsResult(query string, args ...interface{}) (int, int, error) {
 	strArgs := doTrace(query, args...)
@@ -256,7 +271,7 @@ func (dbConn *DBConnection) UpdateRowsResult(query string, args ...interface{}) 
 }
 
 // DeleteRows deletes row(s) and returns affected count.
-// An affected count should always be returned so all errors including "no rows" indicate
+// An affected count should always be returned so all errors including ErrNoRows indicate
 // a server problem.
 // Yes, this looks identical to UpdateRows. It is segregated to make debugging more clear.
 func (dbConn *DBConnection) DeleteRows(query string, args ...interface{}) (int, error) {
@@ -274,7 +289,7 @@ func (dbConn *DBConnection) DeleteRows(query string, args ...interface{}) (int, 
 
 // DeleteRowsResult deletes row(s) and returns result code as well as an affected count.
 // The query is expected to be a stored procedure.
-// An affected count should always be returned so all errors including "no rows" indicate
+// An affected count should always be returned so all errors including ErrNoRows indicate
 // a server problem.
 func (dbConn *DBConnection) DeleteRowsResult(query string, args ...interface{}) (int, int, error) {
 	strArgs := doTrace(query, args...)

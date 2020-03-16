@@ -79,12 +79,8 @@ func MakeSignatureBase(strConsumerKey string, strToken string, strNonce string, 
 
 	// create a param string for the signature
 	sigParamList := make([]string, 0, 6+len(params))
-	sigParamList = append(sigParamList, sigConsumerKey)
-	sigParamList = append(sigParamList, sigNonce)
-	sigParamList = append(sigParamList, sigMethod)
-	sigParamList = append(sigParamList, sigTimestamp)
-	sigParamList = append(sigParamList, sigToken)
-	sigParamList = append(sigParamList, sigVersion)
+	sigParamList = append(sigParamList, sigConsumerKey, sigNonce, sigMethod, sigTimestamp, sigToken, sigVersion)
+
 	for _, param := range params {
 		sigParam := MakeKeyValuePair(param.Key, param.Value)
 		sigParamList = append(sigParamList, sigParam)
@@ -96,9 +92,7 @@ func MakeSignatureBase(strConsumerKey string, strToken string, strNonce string, 
 
 	// build the signature
 	sigList := make([]string, 0, 3)
-	sigList = append(sigList, strHTTPMethod)
-	sigList = append(sigList, url.QueryEscape(strURL))
-	sigList = append(sigList, url.QueryEscape(strSigParam))
+	sigList = append(sigList, strHTTPMethod, url.QueryEscape(strURL), url.QueryEscape(strSigParam))
 	strSignatureBase := strings.Join(sigList, "&")
 
 	Trace.Println("strSignatureBase ", strSignatureBase)
@@ -119,13 +113,7 @@ func MakeHeader(strConsumerKey string, strToken string, strNonce string, strTime
 
 	// create the authorization header
 	hdrParamList := make([]string, 0, 7)
-	hdrParamList = append(hdrParamList, hdrConsumerKey)
-	hdrParamList = append(hdrParamList, hdrNonce)
-	hdrParamList = append(hdrParamList, hdrMethod)
-	hdrParamList = append(hdrParamList, hdrSignature)
-	hdrParamList = append(hdrParamList, hdrTimestamp)
-	hdrParamList = append(hdrParamList, hdrToken)
-	hdrParamList = append(hdrParamList, hdrVersion)
+	hdrParamList = append(hdrParamList, hdrConsumerKey, hdrNonce, hdrMethod, hdrSignature, hdrTimestamp, hdrToken, hdrVersion)
 	sort.Strings(hdrParamList)
 	strHeader := "OAuth " + strings.Join(hdrParamList, ", ")
 	return strHeader

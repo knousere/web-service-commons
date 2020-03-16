@@ -27,54 +27,66 @@ func RoundFloat64(number float64) int {
 }
 
 // Round is a generalized Rounding function conspicuously missing from Go math package
-func Round(value float64, prec int) float64 {
-	multiplier := math.Pow10(prec)
+func Round(value float64, precision int) float64 {
+	multiplier := math.Pow10(precision)
 	interim := math.Floor(value*multiplier + 0.5)
 	return interim / multiplier
 }
 
-// SquareFloat64 squares a float^$.
+// SquareFloat64 squares a float64.
 func SquareFloat64(number float64) float64 {
 	return number * number
 }
 
-// Haversine calculates the great circle arc between two lat/long coordinates.
-// It returns the arc converted to meters.
-func Haversine(latA float64, longA float64, latB float64, longB float64) int {
+// DistanceMeters calculates distance between two lat/long coordinates
+// in degrees using the haversine formula.
+// Return the arc converted to meters as a positive integer.
+// Return -1 if either (lat long) is not initialized.
+func DistanceMeters(latA float64, longA float64, latB float64, longB float64) int {
+	if (latA == 0 && longA == 0) || (latB == 0 && longB == 0) {
+		return -1
+	}
+	radLatA := ToRadians(latA)
+	radLongA := ToRadians(longA)
 
-	latARad := ToRadians(latA)
-	longARad := ToRadians(longA)
+	radLatB := ToRadians(latB)
+	radLongB := ToRadians(longB)
+	haversine := Haversine(radLatA, radLongA, radLatB, radLongB)
 
-	latBRad := ToRadians(latB)
-	longBRad := ToRadians(longB)
+	return RoundFloat64(EarthRadius * haversine)
+}
 
-	deltaLat := latBRad - latARad
-	deltaLong := longBRad - longARad
+// Haversine returns the great circle arc (haversine) in radians
+// between a pair of coordinates in radians.
+func Haversine(radLatA float64, radLongA float64, radLatB float64, radLongB float64) int {
+	deltaLat := radLatB - radLatA
+	deltaLong := radLongB - radLongA
+	if deltaLat == 0 && deltaLong == 0 {
+		return 0
+	}
 
 	aHaver :=
 		SquareFloat64(math.Sin(deltaLat/2)) +
-			math.Cos(latARad)*
-				math.Cos(latBRad)*
+			math.Cos(radLatA)*
+				math.Cos(radLatB)*
 				SquareFloat64(math.Sin(deltaLong/2))
 
-	cHaver := 2 * math.Atan2(math.Sqrt(aHaver), math.Sqrt(1-aHaver))
+	haversine := 2 * math.Atan2(math.Sqrt(aHaver), math.Sqrt(1-aHaver))
 
-	distance := RoundFloat64(EarthRadius * cHaver)
-
-	return distance
+	return haversine
 }
 
 // ToDegrees converts radians to degrees.
 func ToDegrees(dblRadians float64) float64 {
-	return dblRadians * (180 / math.Pi)
+	return dblRadians * 180 / math.Pi
 }
 
 // ToRadians converts degrees to radians.
 func ToRadians(dblDegrees float64) float64 {
-	return dblDegrees * (math.Pi / 180)
+	return dblDegrees * math.Pi / 180
 }
 
 // DistanceToRadians converts arc distance in meters to radians.
 func DistanceToRadians(dblDistance float64) float64 {
-	return dblDistance / 378137.0
+	return dblDistance * math.Pi * 2 / EarthRadius
 }
